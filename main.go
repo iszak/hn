@@ -6,6 +6,7 @@ import (
 	"flag"
 	"golang.org/x/net/html"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -237,6 +238,29 @@ func getComments(node *html.Node) (int, error) {
 	return comments, nil
 }
 
+func fetch(page int, results chan Posts, errors chan error)  {
+	// TODO: Consider spoofing user agent
+	resp, err := http.Get("https://news.ycombinator.com/news?p=" + string(page))
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	node, err := html.Parse(resp.Body)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	posts, err := getPosts(node)
+	if err != nil {
+		errors <- err
+		return
+	}
+
+	results <- posts
+}
+
 func main() {
 	var postsToFetch int
 
@@ -252,22 +276,41 @@ func main() {
 		log.Fatalf("%s", "Posts must be between 1 and 100, inclusive.")
 	}
 
-	// TODO: Parallelise this with channels
-	// TODO: Consider spoofing user agent
-	resp, err := http.Get("https://news.ycombinator.com/news?p=1")
-	if err != nil {
-		log.Fatal(err)
+
+	results := make(chan Posts)
+	errors := make(chan error)
+
+	pagesToFetch := math.Ceil(float64(postsToFetch) / 30.0)
+	for page := 1.0; page <= pagesToFetch; page += 1.0  {
+		go fetch(int(page), results, errors)
 	}
 
-	node, err := html.Parse(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	posts := make(Posts, 0)
+	Loop:
+		for {
+			select {
+			case result, ok := <- results:
+				if !ok {
+					continue
+				}
+			log.Println("results")
+				// TODO: Could insert into position (optimal) or sort after the fact
+				posts = append(posts, result...)
+				if len(posts) >= postsToFetch {
+					break Loop
+				}
+			case err, ok := <- errors:
+				if !ok {
+					continue
+				}
+				log.Fatal(err)
+			default:
+				if errors == nil && results == nil {
+					break Loop
+				}
+			}
+		}
 
-	posts, err := getPosts(node)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	response, err := json.MarshalIndent(posts, "", "    ")
 	if err != nil {
@@ -275,9 +318,7 @@ func main() {
 	}
 
 	// TODO: Verify this is sent to stdout, may want to use os.StdOut for good measure.
-	if string(response) != "" {
-		log.Println(string(response))
-	}
+	log.Println(string(response))
 }
 
 func getPosts(node *html.Node) (Posts, error) {
@@ -310,10 +351,6 @@ func getPosts(node *html.Node) (Posts, error) {
 		if err != nil {
 			//return nil, err
 		}
-
-		// TODO: Check if subtext is nil
-
-		// We may be able to just do subText.LastChild
 
 		comments, err := getComments(nextRow)
 		if err != nil {
