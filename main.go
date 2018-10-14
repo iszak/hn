@@ -133,7 +133,6 @@ func getTitle(node *html.Node) (string, error) {
 		return "", errors.New("author node does not have any children")
 	}
 
-	// TODO: Ideally we should have a "innerText" sort of method here.
 	if firstChild.Type != html.TextNode {
 		return "", errors.New("author node child is not a text node")
 	}
@@ -152,7 +151,6 @@ func getAuthor(node *html.Node) (string, error) {
 		return "", errors.New("author node does not have any children")
 	}
 
-	// TODO: Ideally we should have a "innerText" sort of method here.
 	if firstChild.Type != html.TextNode {
 		return "", errors.New("author node child is not a text node")
 	}
@@ -171,7 +169,6 @@ func getRank(node *html.Node) (int, error) {
 		return -1, errors.New("rank node does not have any children")
 	}
 
-	// TODO: Ideally we should have a "innerText" sort of method here.
 	if firstChild.Type != html.TextNode {
 		return -1, errors.New("rank node child is not a text node")
 	}
@@ -207,26 +204,49 @@ func getPoints(node *html.Node) (int, error) {
 	return points, nil
 }
 
-func getComments(node *html.Node) (int, error) {
+
+func isAdvertisement(node *html.Node) (bool, error) {
+	textNode, err := getCommentNode(node)
+	if err != nil {
+		return false, err
+	}
+
+	if textNode.Data == "hide" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func getCommentNode(node *html.Node) (*html.Node, error) {
 	subTextNode := findNode(node, findByClass("subtext"))
 	if len(subTextNode) != 1 {
-		return -1, errors.New("comment parent nodes length is not exactly one")
+		return nil, errors.New("comment parent nodes length is not exactly one")
 	}
 
 	commentNode := prevSiblingUntil(subTextNode[0].LastChild, func(node *html.Node) bool {
 		return node.Type == html.ElementNode
 	})
 	if commentNode == nil {
-		return -1, errors.New("comment node is nil")
+		return nil, errors.New("comment node is nil")
 	}
 
 	textNode := commentNode.FirstChild
 	if textNode == nil {
-		return -1, errors.New("comment node does not have any children")
+		return nil, errors.New("comment node does not have any children")
 	}
 
 	if textNode.Type != html.TextNode {
-		return -1, errors.New("comment node child is not a text node")
+		return nil, errors.New("comment node child is not a text node")
+	}
+
+	return textNode, nil
+}
+
+func getComments(node *html.Node) (int, error) {
+	textNode, err := getCommentNode(node)
+	if err != nil {
+		return -1, err
 	}
 
 	if textNode.Data == "discuss" {
@@ -244,7 +264,7 @@ func getComments(node *html.Node) (int, error) {
 }
 
 func fetch(page int, results chan Posts, errors chan error) {
-	// TODO: Consider spoofing user agent
+	// TODO: Consider sending Accept and User-Agent headers
 	resp, err := http.Get("https://news.ycombinator.com/news?p=" + string(page))
 	if err != nil {
 		errors <- err
@@ -342,25 +362,35 @@ func getPosts(node *html.Node) (Posts, error) {
 			continue
 		}
 
-		// TODO: Handle ads, with no author
-		author, err := getAuthor(postNode)
+		author := "N/A"
+		points := -1
+		comments := -1
+
+		isAd, err := isAdvertisement(nextRow)
+
 		if err != nil {
-			//return nil, err
+			return nil, err
+		} else if !isAd {
+			author, err = getAuthor(nextRow)
+			if err != nil {
+				return nil, err
+			}
+
+			points, err = getPoints(nextRow)
+			if err != nil {
+				return nil, err
+			}
+
+			comments, err = getComments(nextRow)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		points, err := getPoints(nextRow)
-		if err != nil {
-			//return nil, err
-		}
-
-		comments, err := getComments(nextRow)
-		if err != nil {
-			//return nil, err
-		}
 
 		rank, err := getRank(postNode)
 		if err != nil {
-			//return nil, err
+			return nil, err
 		}
 
 		post := Post{
