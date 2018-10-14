@@ -201,7 +201,9 @@ func getPoints(node *html.Node) (int, error) {
 		return -1, errors.New("point node child is not a text node")
 	}
 
-	points, err := strconv.Atoi(strings.Replace(firstChild.Data, " points", "", 1))
+	var re = regexp.MustCompile(`\D*points?`)
+
+	points, err := strconv.Atoi(re.ReplaceAllString(firstChild.Data, ""))
 	if err != nil {
 		return -1, errors.New("point failed to convert to integer")
 	}
