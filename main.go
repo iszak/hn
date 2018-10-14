@@ -15,12 +15,12 @@ import (
 
 // We must export it to allow JSON to marshal it
 type Post struct {
-	Title string
-	URI string
-	Author string
-	Points int
+	Title    string
+	URI      string
+	Author   string
+	Points   int
 	Comments int
-	Rank int
+	Rank     int
 }
 
 type Posts []Post
@@ -100,7 +100,7 @@ func getUri(nodes []*html.Node) (string, error) {
 
 	node := nodes[0]
 	if node.Type != html.ElementNode {
-		return "", errors.New("uri node type is not element")
+		return "", errors.New("uri node type is not an element node")
 	}
 
 	if node.Data != "a" {
@@ -140,12 +140,12 @@ func getAuthor(nodes []*html.Node) (string, error) {
 
 	firstChild := nodes[0].FirstChild
 	if firstChild == nil {
-		return "", errors.New("title node does not have any children")
+		return "", errors.New("author node does not have any children")
 	}
 
 	// TODO: Ideally we should have a "innerText" sort of method here.
 	if firstChild.Type != html.TextNode {
-		return "", errors.New("title node child is not a text node")
+		return "", errors.New("author node child is not a text node")
 	}
 
 	return firstChild.Data, nil
@@ -217,6 +217,7 @@ func main() {
 	}
 
 	// TODO: Parallelise this with channels
+	// TODO: Consider spoofing user agent
 	resp, err := http.Get("https://news.ycombinator.com/news?p=1")
 	if err != nil {
 		log.Fatal(err)
