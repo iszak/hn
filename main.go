@@ -94,6 +94,10 @@ func findByClass(class string) comparator {
 	}
 }
 
+func min(x int, y int) int {
+	return int(math.Min(float64(x), float64(y)))
+}
+
 func getUri(node *html.Node) (string, error) {
 	nodes := findNode(node.FirstChild, findByClass("storylink"))
 	if len(nodes) != 1 {
@@ -133,7 +137,7 @@ func getTitle(node *html.Node) (string, error) {
 		return "", errors.New("author node child is not a text node")
 	}
 
-	return firstChild.Data, nil
+	return firstChild.Data[0:min(len(firstChild.Data), 256)], nil
 }
 
 func getAuthor(node *html.Node) (string, error) {
@@ -152,7 +156,7 @@ func getAuthor(node *html.Node) (string, error) {
 		return "", errors.New("author node child is not a text node")
 	}
 
-	return firstChild.Data, nil
+	return firstChild.Data[0:min(len(firstChild.Data), 256)], nil
 }
 
 func getRank(node *html.Node) (int, error) {
@@ -238,7 +242,7 @@ func getComments(node *html.Node) (int, error) {
 	return comments, nil
 }
 
-func fetch(page int, results chan Posts, errors chan error)  {
+func fetch(page int, results chan Posts, errors chan error) {
 	// TODO: Consider spoofing user agent
 	resp, err := http.Get("https://news.ycombinator.com/news?p=" + string(page))
 	if err != nil {
