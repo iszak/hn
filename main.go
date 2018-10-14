@@ -263,7 +263,7 @@ func getComments(node *html.Node) (int, error) {
 	return comments, nil
 }
 
-func fetch(page int, results chan Posts, errors chan error) {
+func fetch(page int, results chan result, errors chan error) {
 	// TODO: Consider sending Accept and User-Agent headers
 	resp, err := http.Get("https://news.ycombinator.com/news?p=" + strconv.Itoa(page))
 	if err != nil {
@@ -283,7 +283,15 @@ func fetch(page int, results chan Posts, errors chan error) {
 		return
 	}
 
-	results <- posts
+	results <- result{
+		page: page,
+		posts: posts,
+	}
+}
+
+type result struct {
+	page int
+	posts Posts
 }
 
 func main() {
@@ -301,15 +309,17 @@ func main() {
 		log.Fatalf("%s", "Posts must be between 1 and 100, inclusive.")
 	}
 
-	results := make(chan Posts)
+	results := make(chan result)
 	errors := make(chan error)
 
-	pagesToFetch := math.Ceil(float64(postsToFetch) / 30.0)
+	postsPerPage := 30
+	pagesToFetch := math.Ceil(float64(postsToFetch) / float64(postsPerPage))
 	for page := 1.0; page <= pagesToFetch; page += 1.0 {
 		go fetch(int(page), results, errors)
 	}
 
-	posts := make(Posts, 0)
+	pagesFetched := 0.0
+	posts := make([]Post, postsToFetch)
 Loop:
 	for {
 		select {
@@ -317,9 +327,17 @@ Loop:
 			if !ok {
 				continue
 			}
-			// TODO: Could insert into position (optimal) or sort after the fact
-			posts = append(posts, result...)
-			if len(posts) >= postsToFetch {
+			pagesFetched += 1
+
+			offset := (result.page - 1) * postsPerPage
+			for index, post := range result.posts {
+				if (offset + index) > len(posts) - 1 {
+					break
+				}
+				posts[offset + index] = post
+			}
+
+			if int(pagesFetched) == int(pagesToFetch) {
 				break Loop
 			}
 		case err, ok := <-errors:
