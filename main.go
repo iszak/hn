@@ -270,9 +270,10 @@ func getComments(node *html.Node) (int, error) {
 	return comments, nil
 }
 
-func fetch(page int, results chan result, errors chan error) {
+func fetch(url string, page int, results chan result, errors chan error) {
 	// TODO: Consider sending Accept and User-Agent headers
-	resp, err := http.Get("https://news.ycombinator.com/news?p=" + strconv.Itoa(page))
+	// TODO: Ideally we should a url builder here to ensure valid urls are generated
+	resp, err := http.Get(url + "?p=" + strconv.Itoa(page))
 	if err != nil {
 		errors <- err
 		return
@@ -303,9 +304,11 @@ type result struct {
 
 func main() {
 	var postsToFetch int
+	var newPosts bool
 
 	flags := flag.NewFlagSet("main", flag.ExitOnError)
 	flags.IntVar(&postsToFetch, "posts", 30, "How many posts to print. A positive integer <= 100.")
+	flags.BoolVar(&newPosts, "new", false, "Whether to fetch posts from newest as opposed to front page (default false)")
 
 	err := flags.Parse(os.Args[1:])
 	if err != nil {
@@ -321,8 +324,16 @@ func main() {
 
 	postsPerPage := 30
 	pagesToFetch := math.Ceil(float64(postsToFetch) / float64(postsPerPage))
+
+	url := "https://news.ycombinator.com/"
+	if newPosts {
+		url += "newest"
+	} else {
+		url += "news"
+	}
+
 	for page := 1.0; page <= pagesToFetch; page += 1.0 {
-		go fetch(int(page), results, errors)
+		go fetch(url, int(page), results, errors)
 	}
 
 	pagesFetched := 0.0
