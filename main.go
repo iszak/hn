@@ -265,7 +265,7 @@ func getComments(node *html.Node) (int, error) {
 
 func fetch(page int, results chan Posts, errors chan error) {
 	// TODO: Consider sending Accept and User-Agent headers
-	resp, err := http.Get("https://news.ycombinator.com/news?p=" + string(page))
+	resp, err := http.Get("https://news.ycombinator.com/news?p=" + strconv.Itoa(page))
 	if err != nil {
 		errors <- err
 		return
