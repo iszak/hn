@@ -319,21 +319,21 @@ func main() {
 		log.Fatalf("%s", "Posts must be between 1 and 100, inclusive.")
 	}
 
-	results := make(chan result)
-	errors := make(chan error)
+	resultChan := make(chan result)
+	errorChan := make(chan error)
 
 	postsPerPage := 30
 	pagesToFetch := math.Ceil(float64(postsToFetch) / float64(postsPerPage))
 
-	url := "https://news.ycombinator.com/"
+	u := "https://news.ycombinator.com/"
 	if newPosts {
-		url += "newest"
+		u += "newest"
 	} else {
-		url += "news"
+		u += "news"
 	}
 
 	for page := 1.0; page <= pagesToFetch; page += 1.0 {
-		go fetch(url, int(page), results, errors)
+		go fetch(u, int(page), resultChan, errorChan)
 	}
 
 	pagesFetched := 0.0
@@ -341,7 +341,7 @@ func main() {
 Loop:
 	for {
 		select {
-		case result, ok := <-results:
+		case result, ok := <-resultChan:
 			if !ok {
 				continue
 			}
@@ -358,13 +358,13 @@ Loop:
 			if int(pagesFetched) == int(pagesToFetch) {
 				break Loop
 			}
-		case err, ok := <-errors:
+		case err, ok := <-errorChan:
 			if !ok {
 				continue
 			}
 			log.Fatal(err)
 		default:
-			if errors == nil && results == nil {
+			if errorChan == nil && resultChan == nil {
 				break Loop
 			}
 		}
@@ -387,7 +387,7 @@ func getPosts(node *html.Node) (Posts, error) {
 			return nil, err
 		}
 
-		url, err := getURL(postNode)
+		u, err := getURL(postNode)
 		if err != nil {
 			return nil, err
 		}
@@ -431,7 +431,7 @@ func getPosts(node *html.Node) (Posts, error) {
 
 		post := Post{
 			Title:    title,
-			URL:      url,
+			URL:      u,
 			Author:   author,
 			Points:   points,
 			Comments: comments,
