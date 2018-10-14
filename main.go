@@ -27,21 +27,16 @@ type Posts []Post
 type comparator func(node *html.Node) bool
 func findNode(n *html.Node, compare comparator) []*html.Node {
 	matches := make([]*html.Node, 0)
+	if n == nil {
+		return matches
+	}
 
 	if compare(n) {
 		matches = append(matches, n)
 	}
 
-	firstChild := n.FirstChild
-	if firstChild != nil {
-		matches = append(matches, findNode(firstChild, compare)...)
-	}
-
-	nextSibling := n.NextSibling
-	for nextSibling != nil {
-		matches = append(matches, findNode(nextSibling, compare)...)
-		nextSibling = nextSibling.NextSibling
-	}
+	matches = append(matches, findNode(n.FirstChild, compare)...)
+	matches = append(matches, findNode(n.NextSibling, compare)...)
 
 	return matches
 }
