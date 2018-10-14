@@ -93,12 +93,13 @@ func findByClass(class string) comparator {
 	}
 }
 
-func getUri(nodes []*html.Node) (string, error) {
+func getUri(node *html.Node) (string, error) {
+	nodes := findNode(node.FirstChild, findByClass("storylink"))
 	if len(nodes) != 1 {
 		return "", errors.New("uri nodes length is not exactly one")
 	}
 
-	node := nodes[0]
+	node = nodes[0]
 	if node.Type != html.ElementNode {
 		return "", errors.New("uri node type is not an element node")
 	}
@@ -115,7 +116,8 @@ func getUri(nodes []*html.Node) (string, error) {
 	return href.Val, nil
 }
 
-func getTitle(nodes []*html.Node) (string, error) {
+func getTitle(node *html.Node) (string, error) {
+	nodes := findNode(node.FirstChild, findByClass("storylink"))
 	if len(nodes) != 1 {
 		return "", errors.New("author nodes length is not exactly one")
 	}
@@ -133,7 +135,8 @@ func getTitle(nodes []*html.Node) (string, error) {
 	return firstChild.Data, nil
 }
 
-func getAuthor(nodes []*html.Node) (string, error) {
+func getAuthor(node *html.Node) (string, error) {
+	nodes := findNode(node, findByClass("hnuser"))
 	if len(nodes) != 1 {
 		return "", errors.New("author nodes length is not exactly one")
 	}
@@ -151,7 +154,8 @@ func getAuthor(nodes []*html.Node) (string, error) {
 	return firstChild.Data, nil
 }
 
-func getRank(nodes []*html.Node) (int, error) {
+func getRank(node *html.Node) (int, error) {
+	nodes := findNode(node.FirstChild, findByClass("rank"))
 	if len(nodes) != 1 {
 		return -1, errors.New("rank nodes length is not exactly one")
 	}
@@ -174,7 +178,8 @@ func getRank(nodes []*html.Node) (int, error) {
 	return rank, nil
 }
 
-func getPoints(nodes []*html.Node) (int, error) {
+func getPoints(node *html.Node) (int, error) {
+	nodes := findNode(node, findByClass("score"))
 	if len(nodes) != 1 {
 		return -1, errors.New("point nodes length is not exactly one")
 	}
@@ -197,12 +202,20 @@ func getPoints(nodes []*html.Node) (int, error) {
 }
 
 func getComments(node *html.Node) (int, error) {
-	if node == nil {
+	subTextNode := findNode(node, findByClass("subtext"))
+	if len(subTextNode) != 1 {
+		return -1, errors.New("comment parent nodes length is not exactly one")
+	}
+
+	commentNode := prevSiblingUntil(subTextNode[0].LastChild, func(node *html.Node) bool {
+		return node.Type == html.ElementNode
+	})
+	if commentNode == nil {
 		return -1, errors.New("comment node is nil")
 	}
 
-	textNode := node.FirstChild
-	if node == nil {
+	textNode := commentNode.FirstChild
+	if textNode == nil {
 		return -1, errors.New("comment node does not have any children")
 	}
 
@@ -262,54 +275,52 @@ func main() {
 	}
 
 	// TODO: Verify this is sent to stdout, may want to use os.StdOut for good measure.
-	fmt.Println(string(response))
+	if string(response) != "" {
+		log.Println(string(response))
+	}
 }
 
 func getPosts(node *html.Node) (Posts, error) {
 	// NOTE: we could make this allocation more efficient by passing in the length and allocating up front
 	posts := make(Posts, 0)
 	for _, postNode := range findNode(node, findByClass("athing")) {
-		titleNodes := findNode(postNode.FirstChild, findByClass("storylink"))
-
-		title, err := getTitle(titleNodes)
+		title, err := getTitle(postNode)
 		if err != nil {
 			return nil, err
 		}
 
-		uri, err := getUri(titleNodes)
+		uri, err := getUri(postNode)
 		if err != nil {
 			return nil, err
 		}
 
 		nextRow := postNode.NextSibling.FirstChild
+		// If nextRow is nil, it's likely we're at the end of the results
 		if nextRow == nil {
 			continue
 		}
 
 		// TODO: Handle ads, with no author
-		author, err := getAuthor(findNode(nextRow, findByClass("hnuser")))
+		author, err := getAuthor(postNode)
 		if err != nil {
 			//return nil, err
 		}
 
-		points, err := getPoints(findNode(nextRow, findByClass("score")))
+		points, err := getPoints(nextRow)
 		if err != nil {
 			//return nil, err
 		}
 
-		subText := findNode(nextRow, findByClass("subtext"))
 		// TODO: Check if subtext is nil
 
 		// We may be able to just do subText.LastChild
-		commentNode := prevSiblingUntil(subText[0].LastChild, func(node *html.Node) bool {
-			return node.Type == html.ElementNode
-		})
-		comments, err := getComments(commentNode)
+
+		comments, err := getComments(nextRow)
 		if err != nil {
 			//return nil, err
 		}
 
-		rank, err := getRank(findNode(postNode.FirstChild, findByClass("rank")))
+		rank, err := getRank(postNode)
 		if err != nil {
 			//return nil, err
 		}
