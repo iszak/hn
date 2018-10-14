@@ -151,6 +151,29 @@ func getAuthor(nodes []*html.Node) (string, error) {
 	return firstChild.Data, nil
 }
 
+func getRank(nodes []*html.Node) (int, error) {
+	if len(nodes) != 1 {
+		return -1, errors.New("rank nodes length is not exactly one")
+	}
+
+	firstChild := nodes[0].FirstChild
+	if firstChild == nil {
+		return -1, errors.New("rank node does not have any children")
+	}
+
+	// TODO: Ideally we should have a "innerText" sort of method here.
+	if firstChild.Type != html.TextNode {
+		return -1, errors.New("rank node child is not a text node")
+	}
+
+	rank, err := strconv.Atoi(strings.Replace(firstChild.Data, ".", "", 1))
+	if err != nil {
+		return -1, errors.New("rank failed to convert to integer")
+	}
+
+	return rank, nil
+}
+
 func getPoints(nodes []*html.Node) (int, error) {
 	if len(nodes) != 1 {
 		return -1, errors.New("point nodes length is not exactly one")
@@ -285,7 +308,11 @@ func getPosts(node *html.Node) (Posts, error) {
 		if err != nil {
 			//return nil, err
 		}
-		// TODO: Implement rank
+
+		rank, err := getRank(findNode(postNode.FirstChild, findByClass("rank")))
+		if err != nil {
+			//return nil, err
+		}
 
 		post := Post{
 			Title:  title,
@@ -293,6 +320,7 @@ func getPosts(node *html.Node) (Posts, error) {
 			Author: author,
 			Points: points,
 			Comments: comments,
+			Rank: rank,
 		}
 		posts = append(posts, post)
 	}
