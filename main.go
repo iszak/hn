@@ -293,7 +293,6 @@ func main() {
 				if !ok {
 					continue
 				}
-			log.Println("results")
 				// TODO: Could insert into position (optimal) or sort after the fact
 				posts = append(posts, result...)
 				if len(posts) >= postsToFetch {
@@ -311,8 +310,7 @@ func main() {
 			}
 		}
 
-
-	response, err := json.MarshalIndent(posts, "", "    ")
+	response, err := json.MarshalIndent(posts[0:postsToFetch], "", "    ")
 	if err != nil {
 		log.Fatal(err)
 	}
