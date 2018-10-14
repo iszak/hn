@@ -271,7 +271,7 @@ func getComments(node *html.Node) (int, error) {
 }
 
 func fetch(url string, page int, results chan result, errors chan error) {
-	// TODO: Consider sending Accept and User-Agent headers
+	// TODO: Consider sending Accept, Language and User-Agent headers
 	// TODO: Ideally we should a url builder here to ensure valid urls are generated
 	resp, err := http.Get(url + "?p=" + strconv.Itoa(page))
 	if err != nil {
