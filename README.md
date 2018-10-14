@@ -32,3 +32,5 @@ page, to allow mocking the response.
 ## Suggestions
 - There is some duplication on checking for child nodes, node types, etc. Function composition could be used to chain errors together.
 - Extract out DOM tree manipulation functions, e.g. prevSiblingsUntil, hasAttributeKey, findNode into separate package. These could easily be used in other applications. Personally, I prefer using CSS selectors into of manually selecting children.
+- Better indication if a post is an advertisement instead of checking for -1 in points/comments
+- Redirect errors to stderr instead of stdout
