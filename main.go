@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"golang.org/x/net/html"
 	"log"
 	"math"
@@ -318,8 +319,7 @@ Loop:
 		log.Fatal(err)
 	}
 
-	// TODO: Verify this is sent to stdout, may want to use os.StdOut for good measure.
-	log.Println(string(response))
+	fmt.Println(string(response))
 }
 
 func getPosts(node *html.Node) (Posts, error) {
