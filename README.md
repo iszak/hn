@@ -18,13 +18,10 @@ Run it
 ## Language and Libraries
 Go was chosen for a few reasons;
 
-    - Go is a compiled language. This allows us to produce a cross platform binaries with all dependencies which can
-    easily be run. Compared to an interpreted language, which requires a runtime to be bundled with or already installed.
-    by bundling the interpreter into an executable.
-    - Go is a simple language, compared to Ruby, in terms of number of constructs and syntax.
-    - Go has built in constructs for concurrency. As we are requesting pages, and we know the format for, we can request
-    multiple pages in parallel.
-    - Go has an "experimental" support for parsing HTML.
+- Go is a compiled language. This allows us to produce a cross platform binaries with all dependencies which can easily be run. Compared to an interpreted language, which requires a runtime to be bundled with or already installed. by bundling the interpreter into an executable.
+- Go is a simple language, compared to Ruby, in terms of number of constructs and syntax.
+- Go has built in constructs for concurrency. As we are requesting pages, and we know the format for, we can request multiple pages in parallel.
+- Go has an "experimental" support for parsing HTML.
 
 
 ## Testing
