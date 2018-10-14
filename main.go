@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 // We must export it to allow JSON to marshal it
 type Post struct {
 	Title    string
-	URI      string
+	URL      string
 	Author   string
 	Points   int
 	Comments int
@@ -99,7 +100,7 @@ func min(x int, y int) int {
 	return int(math.Min(float64(x), float64(y)))
 }
 
-func getUri(node *html.Node) (string, error) {
+func getURL(node *html.Node) (string, error) {
 	nodes := findNode(node.FirstChild, findByClass("storylink"))
 	if len(nodes) != 1 {
 		return "", errors.New("uri nodes length is not exactly one")
@@ -119,7 +120,11 @@ func getUri(node *html.Node) (string, error) {
 		return "", errors.New("uri node does not have a href attribute")
 	}
 
-	return href.Val, nil
+	u, err := url.Parse(href.Val)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
 }
 
 func getTitle(node *html.Node) (string, error) {
@@ -369,7 +374,7 @@ func getPosts(node *html.Node) (Posts, error) {
 			return nil, err
 		}
 
-		uri, err := getUri(postNode)
+		url, err := getURL(postNode)
 		if err != nil {
 			return nil, err
 		}
@@ -413,7 +418,7 @@ func getPosts(node *html.Node) (Posts, error) {
 
 		post := Post{
 			Title:    title,
-			URI:      uri,
+			URL:      url,
 			Author:   author,
 			Points:   points,
 			Comments: comments,
