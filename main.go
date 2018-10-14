@@ -280,39 +280,38 @@ func main() {
 		log.Fatalf("%s", "Posts must be between 1 and 100, inclusive.")
 	}
 
-
 	results := make(chan Posts)
 	errors := make(chan error)
 
 	pagesToFetch := math.Ceil(float64(postsToFetch) / 30.0)
-	for page := 1.0; page <= pagesToFetch; page += 1.0  {
+	for page := 1.0; page <= pagesToFetch; page += 1.0 {
 		go fetch(int(page), results, errors)
 	}
 
 	posts := make(Posts, 0)
-	Loop:
-		for {
-			select {
-			case result, ok := <- results:
-				if !ok {
-					continue
-				}
-				// TODO: Could insert into position (optimal) or sort after the fact
-				posts = append(posts, result...)
-				if len(posts) >= postsToFetch {
-					break Loop
-				}
-			case err, ok := <- errors:
-				if !ok {
-					continue
-				}
-				log.Fatal(err)
-			default:
-				if errors == nil && results == nil {
-					break Loop
-				}
+Loop:
+	for {
+		select {
+		case result, ok := <-results:
+			if !ok {
+				continue
+			}
+			// TODO: Could insert into position (optimal) or sort after the fact
+			posts = append(posts, result...)
+			if len(posts) >= postsToFetch {
+				break Loop
+			}
+		case err, ok := <-errors:
+			if !ok {
+				continue
+			}
+			log.Fatal(err)
+		default:
+			if errors == nil && results == nil {
+				break Loop
 			}
 		}
+	}
 
 	response, err := json.MarshalIndent(posts[0:postsToFetch], "", "    ")
 	if err != nil {
@@ -365,12 +364,12 @@ func getPosts(node *html.Node) (Posts, error) {
 		}
 
 		post := Post{
-			Title:  title,
-			URI:    uri,
-			Author: author,
-			Points: points,
+			Title:    title,
+			URI:      uri,
+			Author:   author,
+			Points:   points,
 			Comments: comments,
-			Rank: rank,
+			Rank:     rank,
 		}
 		posts = append(posts, post)
 	}
